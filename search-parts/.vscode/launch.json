@@ -28,7 +28,11 @@
       "name": "Hosted workbench",
       "type": "chrome",
       "request": "launch",
+<<<<<<< HEAD
       "url": "https://collaborationcorner.sharepoint.com/teams/PnPIntranet/_layouts/15/workbench.aspx",
+=======
+      "url": "https://ezcode.sharepoint.com/sites/TestComm1/_layouts/workbench.aspx",
+>>>>>>> 2cbef9bab941f303cbfb6bfa6ca692c8354725aa
       "webRoot": "${workspaceRoot}",
       "sourceMaps": true,
       "sourceMapPathOverrides": {
