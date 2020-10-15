@@ -15,234 +15,249 @@ import styles from './CheckboxTemplate.module.scss';
 
 export default class CheckboxTemplate extends React.Component<IBaseRefinerTemplateProps, IBaseRefinerTemplateState> {
 
-    private _operator: RefinementOperator;
+  private _operator: RefinementOperator;
 
-    public constructor(props: IBaseRefinerTemplateProps) {
-        super(props);
+  public constructor(props: IBaseRefinerTemplateProps) {
+    super(props);
 
-        this.state = {
-            refinerSelectedFilterValues: [],
-        };
+    this.state = {
+      refinerSelectedFilterValues: [],
+      showAll: false
+    };
 
-        this._onFilterAdded = this._onFilterAdded.bind(this);
-        this._onFilterRemoved = this._onFilterRemoved.bind(this);
-        this._applyFilters = this._applyFilters.bind(this);
-        this._clearFilters = this._clearFilters.bind(this);
-        this._onValueFilterChanged = this._onValueFilterChanged.bind(this);
-        this._isFilterMatch = this._isFilterMatch.bind(this);
-        this._clearValueFilter = this._clearValueFilter.bind(this);
+    this._onFilterAdded = this._onFilterAdded.bind(this);
+    this._onFilterRemoved = this._onFilterRemoved.bind(this);
+    this._applyFilters = this._applyFilters.bind(this);
+    this._clearFilters = this._clearFilters.bind(this);
+    this._onValueFilterChanged = this._onValueFilterChanged.bind(this);
+    this._isFilterMatch = this._isFilterMatch.bind(this);
+    this._clearValueFilter = this._clearValueFilter.bind(this);
+  }
+
+  public render() {
+
+    let disableButtons = false;
+
+    if ((this.props.selectedValues.length === 0 && this.state.refinerSelectedFilterValues.length === 0)) {
+      disableButtons = true;
     }
 
-    public render() {
+    const originalRefinerResults = this.props.refinementResult.Values.filter(x => { return !this._isFilterMatch(x); });
+    const tempRefinerResults = originalRefinerResults.length > 5 && !this.state.showAll ? originalRefinerResults.slice(0, 5) : originalRefinerResults;
 
-        let disableButtons = false;
+    return <div className={styles.pnpRefinersTemplateCheckbox}>
+      {
+        this.props.showValueFilter ?
+          <div className="pnp-value-filter-container">
+            <TextField className="pnp-value-filter" value={this.state.valueFilter} placeholder="Filter" onChange={(event: React.FormEvent<HTMLInputElement | HTMLTextAreaElement>, newValue?: string) => { this._onValueFilterChanged(newValue); }} onClick={this._onValueFilterClick} />
+            <Link onClick={this._clearValueFilter} disabled={!this.state.valueFilter || this.state.valueFilter === ""}>Clear</Link>
+          </div>
+          : null
+      }
+      {
+        this.props.isMultiValue && this.props.refinementResult.Values.length > 5 ?
 
-        if ((this.props.selectedValues.length === 0 && this.state.refinerSelectedFilterValues.length === 0)) {
-            disableButtons = true;
-        }
+          <div>
+            <Link
+              theme={this.props.themeVariant as ITheme}
+              onClick={() => { this._applyFilters(this.state.refinerSelectedFilterValues); }}
+              disabled={disableButtons}>{strings.Refiners.ApplyFiltersLabel}
+            </Link>|<Link theme={this.props.themeVariant as ITheme} onClick={this._clearFilters} disabled={this.state.refinerSelectedFilterValues.length === 0}>{strings.Refiners.ClearFiltersLabel}</Link>
+          </div>
 
-        return <div className={styles.pnpRefinersTemplateCheckbox}>
-            {
-                this.props.showValueFilter ?
-                    <div className="pnp-value-filter-container">
-                        <TextField className="pnp-value-filter" value={this.state.valueFilter} placeholder="Filter" onChange={(event: React.FormEvent<HTMLInputElement | HTMLTextAreaElement>,newValue?: string) => { this._onValueFilterChanged(newValue); }} onClick={this._onValueFilterClick} />
-                        <Link onClick={this._clearValueFilter} disabled={!this.state.valueFilter || this.state.valueFilter === ""}>Clear</Link>
-                    </div>
-                    : null
-            }
-            {
-                this.props.isMultiValue && this.props.refinementResult.Values.length > 5 ?
+          : null
+      }
+      {
+        //this.props.refinementResult.Values.filter(x => { return !this._isFilterMatch(x);}).map((refinementValue: IRefinementValue, j) => {
+        tempRefinerResults.map((refinementValue: IRefinementValue, j) => {
 
-                    <div>
-                        <Link
-                            theme={this.props.themeVariant as ITheme}
-                            onClick={() => { this._applyFilters(this.state.refinerSelectedFilterValues); }}
-                            disabled={disableButtons}>{strings.Refiners.ApplyFiltersLabel}
-                        </Link>|<Link theme={this.props.themeVariant as ITheme}  onClick={this._clearFilters} disabled={this.state.refinerSelectedFilterValues.length === 0}>{strings.Refiners.ClearFiltersLabel}</Link>
-                    </div>
+          if (refinementValue.RefinementCount === 0) {
+            return null;
+          }
 
-                    : null
-            }
-            {
-                this.props.refinementResult.Values.filter(x => { return !this._isFilterMatch(x);}).map((refinementValue: IRefinementValue, j) => {
+          return (
+            <Checkbox
+              styles={{
+                root: {
+                  padding: 10
+                }
+              }}
+              theme={this.props.themeVariant as ITheme}
+              key={j}
+              checked={this._isValueInFilterSelection(refinementValue)}
+              disabled={this.state.refinerSelectedFilterValues.length > 0 && !this._isValueInFilterSelection(refinementValue) && !this.props.isMultiValue && refinementValue.RefinementName !== 'Size'}
+              label={Text.format(refinementValue.RefinementValue + ' ({0})', refinementValue.RefinementCount)}
+              onChange={(ev, checked: boolean) => {
+                checked ? this._onFilterAdded(refinementValue) : this._onFilterRemoved(refinementValue);
+              }} />
+          );
+        })
+      }
+      {
+        originalRefinerResults.length > 5 && !this.state.showAll &&
+        <div>
+          <Link
+            theme={this.props.themeVariant as ITheme}
+            onClick={() => { this.setState({ showAll: true }); }}
+          >Show All
+              </Link>
+        </div>
+      }
+      {
+        this.props.isMultiValue ?
 
-                    if (refinementValue.RefinementCount === 0) {
-                        return null;
-                    }
+          <div>
+            <Link
+              theme={this.props.themeVariant as ITheme}
+              onClick={() => { this._applyFilters(this.state.refinerSelectedFilterValues); }}
+              disabled={disableButtons}>{strings.Refiners.ApplyFiltersLabel}
+            </Link>|<Link theme={this.props.themeVariant as ITheme} onClick={this._clearFilters} disabled={this.state.refinerSelectedFilterValues.length === 0}>{strings.Refiners.ClearFiltersLabel}</Link>
+          </div>
 
-                    return (
-                        <Checkbox
-                            styles={{
-                                root: {
-                                    padding: 10
-                                }
-                            }}
-                            theme={this.props.themeVariant as ITheme}
-                            key={j}
-                            checked={this._isValueInFilterSelection(refinementValue)}
-                            disabled={this.state.refinerSelectedFilterValues.length > 0 && !this._isValueInFilterSelection(refinementValue) && !this.props.isMultiValue && refinementValue.RefinementName !== 'Size'}
-                            label={Text.format(refinementValue.RefinementValue + ' ({0})', refinementValue.RefinementCount)}
-                            onChange={(ev, checked: boolean) => {
-                                checked ? this._onFilterAdded(refinementValue) : this._onFilterRemoved(refinementValue);
-                            }} />
-                    );
-                })
-            }
-            {
-                this.props.isMultiValue ?
+          : null
+      }
+    </div>;
+  }
 
-                    <div>
-                        <Link
-                            theme={this.props.themeVariant as ITheme}
-                            onClick={() => { this._applyFilters(this.state.refinerSelectedFilterValues); }}
-                            disabled={disableButtons}>{strings.Refiners.ApplyFiltersLabel}
-                        </Link>|<Link theme={this.props.themeVariant as ITheme}  onClick={this._clearFilters} disabled={this.state.refinerSelectedFilterValues.length === 0}>{strings.Refiners.ClearFiltersLabel}</Link>
-                    </div>
+  public componentDidMount() {
 
-                    : null
-            }
-        </div>;
+    // Determine the operator according to multi value setting
+    this._operator = this.props.isMultiValue ? RefinementOperator.OR : RefinementOperator.AND;
+
+    // This scenario happens due to the behavior of the Office UI Fabric GroupedList component who recreates child components when a greoup is collapsed/expanded, causing a state reset for sub components
+    // In this case we use the refiners global state to recreate the 'local' state for this component
+    this.setState({
+      refinerSelectedFilterValues: this.props.selectedValues
+    });
+  }
+
+  public UNSAFE_componentWillReceiveProps(nextProps: IBaseRefinerTemplateProps) {
+
+    if (nextProps.shouldResetFilters) {
+      this.setState({
+        refinerSelectedFilterValues: [],
+      });
     }
 
-    public componentDidMount() {
+    // Remove an arbitrary value from the inner state
+    // Useful when the remove filter action is also present in the parent layout component
+    if (nextProps.removeFilterValue) {
 
-        // Determine the operator according to multi value setting
-        this._operator = this.props.isMultiValue ? RefinementOperator.OR : RefinementOperator.AND;
+      const newFilterValues = this.state.refinerSelectedFilterValues.filter((elt) => {
+        return elt.RefinementValue !== nextProps.removeFilterValue.RefinementValue;
+      });
 
-        // This scenario happens due to the behavior of the Office UI Fabric GroupedList component who recreates child components when a greoup is collapsed/expanded, causing a state reset for sub components
-        // In this case we use the refiners global state to recreate the 'local' state for this component
-        this.setState({
-            refinerSelectedFilterValues: this.props.selectedValues
-        });
+      this.setState({
+        refinerSelectedFilterValues: newFilterValues
+      });
+
+      this._applyFilters(newFilterValues);
     }
+  }
 
-    public UNSAFE_componentWillReceiveProps(nextProps: IBaseRefinerTemplateProps) {
+  /**
+   * Checks if the current filter value is present in the list of the selected values for the current refiner
+   * @param valueToCheck The filter value to check
+   */
+  private _isValueInFilterSelection(valueToCheck: IRefinementValue): boolean {
 
-        if (nextProps.shouldResetFilters) {
-            this.setState({
-                refinerSelectedFilterValues: [],
-            });
-        }
+    let newFilters = this.state.refinerSelectedFilterValues.filter((filter) => {
+      return filter.RefinementToken === valueToCheck.RefinementToken && filter.RefinementValue === valueToCheck.RefinementValue;
+    });
 
-        // Remove an arbitrary value from the inner state
-        // Useful when the remove filter action is also present in the parent layout component
-        if (nextProps.removeFilterValue) {
+    return newFilters.length === 0 ? false : true;
+  }
 
-            const newFilterValues = this.state.refinerSelectedFilterValues.filter((elt) => {
-                return elt.RefinementValue !== nextProps.removeFilterValue.RefinementValue;
-            });
+  /**
+   * Handler when a new filter value is selected
+   * @param addedValue the filter value added
+   */
+  private _onFilterAdded(addedValue: IRefinementValue) {
 
-            this.setState({
-                refinerSelectedFilterValues: newFilterValues
-            });
+    let newFilterValues = update(this.state.refinerSelectedFilterValues, { $push: [addedValue] });
 
-            this._applyFilters(newFilterValues);
-        }
+    this.setState({
+      refinerSelectedFilterValues: newFilterValues
+    });
+
+    if (!this.props.isMultiValue) {
+      this._applyFilters(newFilterValues);
     }
+  }
 
-    /**
-     * Checks if the current filter value is present in the list of the selected values for the current refiner
-     * @param valueToCheck The filter value to check
-     */
-    private _isValueInFilterSelection(valueToCheck: IRefinementValue): boolean {
+  /**
+   * Handler when a filter value is unselected
+   * @param removedValue the filter value removed
+   */
+  private _onFilterRemoved(removedValue: IRefinementValue) {
 
-        let newFilters = this.state.refinerSelectedFilterValues.filter((filter) => {
-            return filter.RefinementToken === valueToCheck.RefinementToken && filter.RefinementValue === valueToCheck.RefinementValue;
-        });
+    const newFilterValues = this.state.refinerSelectedFilterValues.filter((elt) => {
+      return elt.RefinementValue !== removedValue.RefinementValue;
+    });
 
-        return newFilters.length === 0 ? false : true;
+    this.setState({
+      refinerSelectedFilterValues: newFilterValues
+    });
+
+    if (!this.props.isMultiValue) {
+      this._applyFilters(newFilterValues);
     }
+  }
 
-    /**
-     * Handler when a new filter value is selected
-     * @param addedValue the filter value added
-     */
-    private _onFilterAdded(addedValue: IRefinementValue) {
+  /**
+   * Applies all selected filters for the current refiner
+   */
+  private _applyFilters(updatedValues: IRefinementValue[]) {
+    this.props.onFilterValuesUpdated(this.props.refinementResult.FilterName, updatedValues, this._operator);
+  }
 
-        let newFilterValues = update(this.state.refinerSelectedFilterValues, { $push: [addedValue] });
+  /**
+   * Clears all selected filters for the current refiner
+   */
+  private _clearFilters() {
 
-        this.setState({
-            refinerSelectedFilterValues: newFilterValues
-        });
+    this.setState({
+      refinerSelectedFilterValues: []
+    });
 
-        if (!this.props.isMultiValue) {
-            this._applyFilters(newFilterValues);
-        }
-    }
+    this._applyFilters([]);
+  }
 
-    /**
-     * Handler when a filter value is unselected
-     * @param removedValue the filter value removed
-     */
-    private _onFilterRemoved(removedValue: IRefinementValue) {
+  /**
+   * Checks if an item-object matches the provided refinement value filter value
+   * @param item The item-object to be checked
+   */
+  private _isFilterMatch(item: IRefinementValue): boolean {
+    if (!this.state.valueFilter) { return false; }
+    const isSelected = this.state.refinerSelectedFilterValues.some(selectedValue => selectedValue.RefinementValue === item.RefinementValue);
+    if (isSelected) { return false; }
+    return item.RefinementValue.toLowerCase().indexOf(this.state.valueFilter.toLowerCase()) === -1;
+  }
 
-        const newFilterValues = this.state.refinerSelectedFilterValues.filter((elt) => {
-            return elt.RefinementValue !== removedValue.RefinementValue;
-        });
+  /**
+   * Event triggered when a new value is provided in the refinement value filter textfield.
+   * @param newvalue The new value provided through the textfield
+   */
+  private _onValueFilterChanged(newValue: string) {
+    this.setState({
+      valueFilter: newValue
+    });
+  }
 
-        this.setState({
-            refinerSelectedFilterValues: newFilterValues
-        });
+  /**
+   * Clears the filter applied to the refinement values
+   */
+  private _clearValueFilter() {
+    this.setState({
+      valueFilter: ""
+    });
+  }
 
-        if (!this.props.isMultiValue) {
-            this._applyFilters(newFilterValues);
-        }
-    }
-
-    /**
-     * Applies all selected filters for the current refiner
-     */
-    private _applyFilters(updatedValues: IRefinementValue[]) {
-        this.props.onFilterValuesUpdated(this.props.refinementResult.FilterName, updatedValues, this._operator);
-    }
-
-    /**
-     * Clears all selected filters for the current refiner
-     */
-    private _clearFilters() {
-
-        this.setState({
-            refinerSelectedFilterValues: []
-        });
-
-        this._applyFilters([]);
-    }
-
-    /**
-     * Checks if an item-object matches the provided refinement value filter value
-     * @param item The item-object to be checked
-     */
-    private _isFilterMatch(item: IRefinementValue): boolean {
-        if(!this.state.valueFilter) { return false; }
-        const isSelected = this.state.refinerSelectedFilterValues.some(selectedValue => selectedValue.RefinementValue === item.RefinementValue);
-        if(isSelected) { return false; }
-        return item.RefinementValue.toLowerCase().indexOf(this.state.valueFilter.toLowerCase()) === -1;
-    }
-
-    /**
-     * Event triggered when a new value is provided in the refinement value filter textfield.
-     * @param newvalue The new value provided through the textfield
-     */
-    private _onValueFilterChanged(newValue: string) {
-        this.setState({
-            valueFilter: newValue
-        });
-    }
-
-    /**
-     * Clears the filter applied to the refinement values
-     */
-    private _clearValueFilter() {
-        this.setState({
-            valueFilter: ""
-        });
-    }
-
-    /**
-     * Prevents the parent group to be colapsed
-     * @param event The event that triggered the click
-     */
-    private _onValueFilterClick(event: React.MouseEvent<HTMLInputElement | HTMLTextAreaElement, MouseEvent>) {
-        event.stopPropagation();
-    }
+  /**
+   * Prevents the parent group to be colapsed
+   * @param event The event that triggered the click
+   */
+  private _onValueFilterClick(event: React.MouseEvent<HTMLInputElement | HTMLTextAreaElement, MouseEvent>) {
+    event.stopPropagation();
+  }
 }

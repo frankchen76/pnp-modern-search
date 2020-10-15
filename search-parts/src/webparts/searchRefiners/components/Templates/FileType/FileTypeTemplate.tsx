@@ -37,7 +37,8 @@ export default class FileTypeTemplate extends React.Component<IBaseRefinerTempla
     super(props);
 
     this.state = {
-      refinerSelectedFilterValues: []
+      refinerSelectedFilterValues: [],
+      showAll: false
     };
 
     this._onValueFilterChanged = this._onValueFilterChanged.bind(this);
@@ -49,21 +50,25 @@ export default class FileTypeTemplate extends React.Component<IBaseRefinerTempla
 
     let disableButtons = false;
     if (this.props.selectedValues.length === 0 && this.state.refinerSelectedFilterValues.length === 0) {
-        disableButtons = true;
+      disableButtons = true;
     }
+
+    const originalRefinerResults = this.props.refinementResult.Values.filter(x => { return !this._isFilterMatch(x); });
+    const tempRefinerResults = originalRefinerResults.length > 5 && !this.state.showAll ? originalRefinerResults.slice(0, 5) : originalRefinerResults;
 
     return (
       <div className={styles.pnpRefinersTemplateFileType}>
         {
-            this.props.showValueFilter ?
-                <div className="pnp-value-filter-container">
-                    <TextField className="pnp-value-filter" value={this.state.valueFilter} placeholder="Filter" onChange={(event: React.FormEvent<HTMLInputElement | HTMLTextAreaElement>,newValue?: string) => { this._onValueFilterChanged(newValue); }} onClick={this._onValueFilterClick} />
-                    <Link onClick={this._clearValueFilter} disabled={!this.state.valueFilter || this.state.valueFilter === ""}>Clear</Link>
-                </div>
-                : null
+          this.props.showValueFilter ?
+            <div className="pnp-value-filter-container">
+              <TextField className="pnp-value-filter" value={this.state.valueFilter} placeholder="Filter" onChange={(event: React.FormEvent<HTMLInputElement | HTMLTextAreaElement>, newValue?: string) => { this._onValueFilterChanged(newValue); }} onClick={this._onValueFilterClick} />
+              <Link onClick={this._clearValueFilter} disabled={!this.state.valueFilter || this.state.valueFilter === ""}>Clear</Link>
+            </div>
+            : null
         }
         {
-          this.props.refinementResult.Values.filter(x => { return !this._isFilterMatch(x);}).map((refinementValue: IRefinementValue, j) => {
+          //this.props.refinementResult.Values.filter(x => { return !this._isFilterMatch(x);}).map((refinementValue: IRefinementValue, j) => {
+          tempRefinerResults.map((refinementValue: IRefinementValue, j) => {
 
             if (refinementValue.RefinementCount === 0) {
               return null;
@@ -98,6 +103,16 @@ export default class FileTypeTemplate extends React.Component<IBaseRefinerTempla
               </Checkbox>
             );
           })
+        }
+        {
+          originalRefinerResults.length > 5 && !this.state.showAll &&
+          <div>
+            <Link
+              theme={this.props.themeVariant as ITheme}
+              onClick={() => { this.setState({ showAll: true }); }}
+            >Show All
+              </Link>
+          </div>
         }
         {
           this.props.isMultiValue ?
@@ -223,10 +238,10 @@ export default class FileTypeTemplate extends React.Component<IBaseRefinerTempla
    * @param item The item-object to be checked
    */
   private _isFilterMatch(item: IRefinementValue): boolean {
-      if(!this.state.valueFilter) { return false; }
-      const isSelected = this.state.refinerSelectedFilterValues.some(selectedValue => selectedValue.RefinementValue === item.RefinementValue);
-      if(isSelected) { return false; }
-      return item.RefinementValue.toLowerCase().indexOf(this.state.valueFilter.toLowerCase()) === -1 ;
+    if (!this.state.valueFilter) { return false; }
+    const isSelected = this.state.refinerSelectedFilterValues.some(selectedValue => selectedValue.RefinementValue === item.RefinementValue);
+    if (isSelected) { return false; }
+    return item.RefinementValue.toLowerCase().indexOf(this.state.valueFilter.toLowerCase()) === -1;
   }
 
   /**
@@ -234,18 +249,18 @@ export default class FileTypeTemplate extends React.Component<IBaseRefinerTempla
    * @param newvalue The new value provided through the textfield
    */
   private _onValueFilterChanged(newValue: string) {
-      this.setState({
-          valueFilter: newValue
-      });
+    this.setState({
+      valueFilter: newValue
+    });
   }
 
   /**
    * Clears the filter applied to the refinement values
    */
   private _clearValueFilter() {
-      this.setState({
-          valueFilter: ""
-      });
+    this.setState({
+      valueFilter: ""
+    });
   }
 
   /**
@@ -253,6 +268,6 @@ export default class FileTypeTemplate extends React.Component<IBaseRefinerTempla
    * @param event The event that triggered the click
    */
   private _onValueFilterClick(event: React.MouseEvent<HTMLInputElement | HTMLTextAreaElement, MouseEvent>) {
-      event.stopPropagation();
+    event.stopPropagation();
   }
 }
